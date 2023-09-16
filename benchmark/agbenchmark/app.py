@@ -49,7 +49,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.post("/reports")
 def run_single_test(body: CreateReportRequest) -> Any:
     from agbenchmark.__main__ import run_benchmark
