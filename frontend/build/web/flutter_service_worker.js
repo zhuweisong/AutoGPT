@@ -26,8 +26,8 @@ const RESOURCES = {"canvaskit/chromium/canvaskit.js": "ffb2bb6484d5689d91f393b60
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "flutter.js": "6fef97aeca90b426343ba6c5c9dc5d4a",
-"index.html": "4c76e804c4e10a4e324de152d45606b1",
-"/": "4c76e804c4e10a4e324de152d45606b1",
+"index.html": "64532a3a8d66be75c1f1161f42d1d39f",
+"/": "64532a3a8d66be75c1f1161f42d1d39f",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "main.dart.js": "7089aeeeb6e64e612335fa779638f6f9",
 "manifest.json": "0fa552613b8ec0fda5cda565914e3b16"};
