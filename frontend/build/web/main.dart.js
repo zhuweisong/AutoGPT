@@ -47283,7 +47283,7 @@ $S:338}
 A.eH.prototype={
 xw(a){switch(a.a){case 0:return this.a
 case 1:return"http://127.0.0.1:8080/ap/v1"
-case 2:return"https://leaderboard.agpt.co"
+case 2:return"https://agpt-leaderboard-preview.vercel.app"
 default:return this.a}},
 qW(a,b){return this.YH(0,b)},
 YH(a,b){var s=0,r=A.K(t.P),q,p=this,o
