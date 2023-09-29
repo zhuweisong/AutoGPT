@@ -99,7 +99,8 @@ jobs:
       - name: Run regression tests
         working-directory: ./autogpts/${{ matrix.agent-name }}/
         run: |
-          sh run &
+          ./run agent start forge
+
           sleep 20
           set +e # Ignore non-zero exit codes and continue execution
           echo "Running the following command: poetry run agbenchmark --maintain --mock"
@@ -123,7 +124,6 @@ jobs:
 
           echo "Running the following command: poetry run agbenchmark --test=WriteFile"
           poetry run agbenchmark --test=WriteFile
-          sh run_benchmark serve &
           sleep 10
           cd ../../benchmark
           poetry install
