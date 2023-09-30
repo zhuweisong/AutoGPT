@@ -1,4 +1,5 @@
 import json
+import os
 import pprint
 
 from forge.sdk import (
@@ -13,6 +14,7 @@ from forge.sdk import (
     PromptEngine,
     chat_completion_request,
 )
+import openai
 
 LOG = ForgeLogger(__name__)
 
@@ -126,8 +128,26 @@ class ForgeAgent(Agent):
         step = await self.db.create_step(
             task_id=task_id, input=step_request, is_last=True
         )
+        import openai
 
-        self.workspace.write(task_id=task_id, path="output.txt", data=b"Washington D.C")
+        # Set up the OpenAI API key
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+
+        # Start a conversation with the model
+        response = openai.ChatCompletion.create(
+          model="gpt-4",
+          messages=[
+                {"role": "user", "content": "What's the capital of America?"}
+            ]
+        )
+
+        # Extract the model's response
+        answer = response.choices[0].message.content
+
+        print(answer)
+
+        self.workspace.write(task_id=task_id, path="output.txt", data=answer.encode())
+
 
 
         await self.db.create_artifact(
@@ -137,7 +157,7 @@ class ForgeAgent(Agent):
             relative_path="",
             agent_created=True,
         )
-        
+
         step.output = "Washington D.C"
 
         LOG.info(f"\t✅ Final Step completed: {step.step_id}")
