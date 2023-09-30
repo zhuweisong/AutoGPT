@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import pprint
@@ -134,32 +135,85 @@ class ForgeAgent(Agent):
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
         # Start a conversation with the model
+        prompt = f"""
+{step_request.input}
+Pick one command amongst these:
+write_to_file("example.txt", "Hello World")
+
+
+For example, if I ask you to write a file to my_gift.txt, and to write the things you would suggest to buy for
+my little sister, you would write:
+write_to_file("my_gift.txt", "I would suggest her to buy her flowers")
+"""
+        print(prompt)
         response = openai.ChatCompletion.create(
           model="gpt-4",
           messages=[
-                {"role": "user", "content": "What's the capital of America?"}
+                {"role": "user", "content": prompt}
             ]
         )
 
         # Extract the model's response
         answer = response.choices[0].message.content
-
+        # answer = transform_content(answer)
         print(answer)
+        data = parse_command_using_ast(answer)
 
-        self.workspace.write(task_id=task_id, path="output.txt", data=answer.encode())
+        command = data["command"]
+        if command == "write_to_file":
+            filename = data["arg_1"]
+            content = data["arg_2"]
+            self.workspace.write(task_id=task_id, path=filename, data=content.encode())
 
 
+            await self.db.create_artifact(
+                task_id=task_id,
+                step_id=step.step_id,
+                file_name=filename,
+                relative_path="",
+                agent_created=True,
+            )
 
-        await self.db.create_artifact(
-            task_id=task_id,
-            step_id=step.step_id,
-            file_name="output.txt",
-            relative_path="",
-            agent_created=True,
-        )
+            step.output = answer
 
-        step.output = "Washington D.C"
+            LOG.info(f"\t✅ Final Step completed: {step.step_id}")
 
-        LOG.info(f"\t✅ Final Step completed: {step.step_id}")
+            return step
 
-        return step
+
+# def transform_content(content: str) -> str:
+#     # Remove the "python" word
+#     transformed = content.replace("python", "")
+#
+#     # Add \n at the beginning
+#     transformed = "\\n" + transformed
+#
+#     return transformed
+#
+# import ast
+
+def parse_command_using_ast(code):
+    try:
+        parsed = ast.parse(code)
+    except SyntaxError:
+        return None
+
+    if not isinstance(parsed, ast.Module):
+        return None
+
+    if not parsed.body or not isinstance(parsed.body[0], ast.Expr):
+        return None
+
+    call_node = parsed.body[0].value
+
+    if not isinstance(call_node, ast.Call):
+        return None
+
+    command = call_node.func.id
+    args = [arg.s for arg in call_node.args if isinstance(arg, ast.Str)]
+
+    result = {"command": command}
+    for idx, arg in enumerate(args, 1):
+        result[f"arg_{idx}"] = arg
+
+    return result
