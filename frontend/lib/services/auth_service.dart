@@ -2,41 +2,51 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:html' as html;
+import 'package:http/http.dart' as http;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // This stream controller will be used to publish the incoming OAuth codes.
   final StreamController<String> _oauthCodeController = StreamController();
-
   String? _expectedState;
 
   AuthService() {
-    // This function will be invoked whenever a new link is opened with the app.
-    linkStream.listen((String? link) {
-      // Check if the link is not null before proceeding
-      if (link != null) {
-        // Extract the OAuth code from the link and add it to the stream.
-        final Uri url = Uri.parse(link);
-        final String? code = url.queryParameters['code'];
-        if (code != null) {
-          _oauthCodeController.add(code);
+    if (kIsWeb) {
+      _handleWebOAuth();
+    } else {
+      linkStream.listen((String? link) {
+        if (link != null) {
+          final Uri url = Uri.parse(link);
+          final String? code = url.queryParameters['code'];
+          if (code != null) {
+            _oauthCodeController.add(code);
+          }
         }
-      }
-    }, onError: (err) {
-      // Handle the error here
-      print(err);
-    });
+      }, onError: (err) {
+        print(err);
+      });
+    }
+  }
+
+  void _handleWebOAuth() {
+    final currentUrl = html.window.location.href;
+    final uri = Uri.parse(currentUrl);
+
+    final String? code = uri.queryParameters['code'];
+    final String? state = uri.queryParameters['state'];
+
+    if (code != null && state != null) {
+      _oauthCodeController.add(currentUrl);
+    }
   }
 
   String getRedirectUri() {
     // Get the current URL
     String currentUrl = html.window.location.href;
 
-    print(currentUrl);
     return currentUrl;
   }
 
@@ -98,6 +108,34 @@ class AuthService {
     }).toString();
   }
 
+  Future<String> _exchangeCodeForToken(
+      String authCode, String redirectUri, String provider) async {
+    const String functionUrl =
+        'https://us-central1-prod-auto-gpt.cloudfunctions.net/exchangeCodeForAccessToken';
+
+    try {
+      final response = await http.post(
+        Uri.parse(functionUrl),
+        body: jsonEncode({
+          'code': authCode,
+          'redirectUri': redirectUri,
+          'provider': provider,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return data['firebaseToken'] as String;
+      } else {
+        throw Exception('Failed to exchange auth code for token');
+      }
+    } catch (e) {
+      print('Error: $e');
+      throw e;
+    }
+  }
+
   // Sign in with Google using redirect
   Future<UserCredential?> signInWithGoogle() async {
     try {
@@ -106,8 +144,11 @@ class AuthService {
       await _launchURL(googleOAuthUrl);
       final String? authCode = await _handleOAuthRedirect();
       if (authCode != null) {
-        // TODO: Exchange the authorization code for an access token
-        // and sign in the user with Firebase.
+        final String firebaseToken =
+            await _exchangeCodeForToken(authCode, redirectUri, 'google');
+        final UserCredential userCredential =
+            await _auth.signInWithCustomToken(firebaseToken);
+        return userCredential;
       }
     } catch (e) {
       print("Error during Google Sign-In: $e");
@@ -124,8 +165,11 @@ class AuthService {
       await _launchURL(githubOAuthUrl);
       final String? authCode = await _handleOAuthRedirect();
       if (authCode != null) {
-        // TODO: Exchange the authorization code for an access token
-        // and sign in the user with Firebase.
+        final String firebaseToken =
+            await _exchangeCodeForToken(authCode, redirectUri, 'github');
+        final UserCredential userCredential =
+            await _auth.signInWithCustomToken(firebaseToken);
+        return userCredential;
       }
     } catch (e) {
       print("Error during GitHub Sign-In: $e");
