@@ -17,15 +17,6 @@ DEFAULT_RECORD_MODE = "new_episodes"
 BASE_VCR_CONFIG = {
     "before_record_request": before_record_request,
     "before_record_response": before_record_response,
-    "filter_headers": [
-        "Authorization",
-        "AGENT-MODE",
-        "AGENT-TYPE",
-        "OpenAI-Organization",
-        "X-OpenAI-Client-User-Agent",
-        "User-Agent",
-    ],
-    "match_on": ["method", "headers"],
 }
 
 
