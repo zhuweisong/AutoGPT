@@ -64,7 +64,10 @@ while json_files:
     json_file = json_files.popleft()
 
     with open(json_file, "r") as file:
-        data = json.load(file)
+        try:
+            data = json.load(file)
+        except:
+            raise Exception(f"Error while loading {json_file}")
 
         if "eval_id" not in data:
             data["eval_id"] = str(uuid.uuid4())
